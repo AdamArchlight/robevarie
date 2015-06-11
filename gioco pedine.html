@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<!--
+
+	Realizzato con tanto tempo e tanta pazienza da Riccardo Belli.
+
+-->
+<head>
+	<style>
+		body, table, tr, td, tbody {
+			margin: 0px;
+			padding: 0px;
+		}
+		table, tr, td, tbody {
+			border-spacing: 0px;
+		}
+		p {
+			font-size: 30px;
+			margin-left: 30px;
+			padding: 0px;
+		}
+		input {
+			margin-left: 30px;
+			height: 50px;
+			width: 200px;
+		}
+	</style>
+</head>
+
+<body>
+	<table>
+	<td>
+		<canvas id="tela"></canvas>
+	</td>
+	<td>
+		<p id="punteggio"></p>
+		<br>
+		<input type="button" onclick="location.reload()" value="RICOMINCIA DA CAPO">
+	</td>
+	</table>
+	<script>
+		elementoCanvas=document.getElementById("tela");
+		contesto=elementoCanvas.getContext("2d");
+		
+		elementoCanvas.width=900;
+		elementoCanvas.height=900;
+		
+		var i=0,j=0,coordx,coordy,nmosse=0;
+		
+		//	Variabile per poter fare lo scavalco multiplo.
+		uppello=false;
+		
+		//	Adesso incremento il numero delle mosse con il DOM
+		punteggio.innerHTML="Numero mosse: "+nmosse;
+		
+		//	Funzione costruttrice dell'oggetto pedina
+		function nuovaPedina(cisei,sel){
+			this.esiste=cisei;
+			this.selezionata=sel;
+		}
+		
+		//	Disegna la pedina sulla tela
+		function faiPedina(casellax, casellay, fallanera){
+			//	Trasformo le coord. della casella in pixel (del centro di quella casella)
+			casellax=(casellax*100)+50;
+			casellay=(casellay*100)+50;
+			
+			//	Faccio la casella, come da contratto
+			if(fallanera==true){
+				contesto.fillStyle="BLACK";
+			}
+			contesto.beginPath();
+			contesto.arc(casellax,casellay,30,0,Math.PI*2);
+			contesto.closePath();
+			if(fallanera==false){
+				contesto.stroke();
+			}
+			contesto.fill();
+			contesto.fillStyle="WHITE";
+		}
+		
+		//	Funzione che elimina la pedina dalla tela
+		function eliminaPedina(eliminaX,eliminaY){
+			contesto.fillStyle="WHITE";
+			contesto.beginPath();
+			contesto.arc((eliminaX*100)+50,(eliminaY*100)+50,35,0,Math.PI*2);	//	Aumento il raggio di 5 pixel così la cancello
+			contesto.closePath();
+			contesto.fill();
+			
+			//	Sposto l'eliminazione logica dentro alla funzione per comodità.
+			matrice[eliminaX][eliminaY].selezionata=false;
+			matrice[eliminaX][eliminaY].esiste=false;
+		}
+		
+		
+		//	Funzione per determinare se la mossa è "legale".
+		//	Le variabili vecchiax, vecchiay, nuovax e nuovay sono le
+		//	copie di coordx, coordy, vecchiacoordx e vecchiacoordy. ecc.
+		function sipuofare(vecchiax,vecchiay,nuovax,nuovay){
+			//	Valore del return preimpostato a "false": gli dico se
+			//	la mossa si può fare oppure no per esclusione.
+			var ehcerto=false;
+			
+			//	Controllo se clicco sulla stessa casella
+			if(vecchiax==nuovax && vecchiay==nuovay){
+				uppello=false;
+				return ehcerto;
+			}
+			
+			//	Controllo se clicco sopra ad un'altra casella
+			if(matrice[nuovax][nuovay].esiste==true){
+				uppello=false;
+				return ehcerto;
+			}
+			
+			//	Controllo se è una pedina adiacente per diagonale.
+			//	Sembra complesso, in realtà semplicemente gli dico che le pedine adiacenti in diagonale sono gli unici valori ammessi.
+			if((nuovax==vecchiax+1 && nuovay==vecchiay+1) || (nuovax==vecchiax+1 && nuovay==vecchiay-1) || (nuovax==vecchiax-1 && nuovay==vecchiay+1) || (nuovax==vecchiax-1 && nuovay==vecchiay-1)){
+				uppello=false;
+				ehcerto=true;
+			}
+			
+			//	Controllo se è una pedina adiacente per verticale e orizzontale.
+			if((nuovax==vecchiax && nuovay==vecchiay+1) || (nuovax==vecchiax && nuovay==vecchiay-1) || (nuovax==vecchiax+1 && nuovay==vecchiay) || (nuovax==vecchiax-1 && nuovay==vecchiay)){
+				uppello=false;
+				ehcerto=true;
+			}
+			
+			//	Sto mangiando un'altra pedina? Se si, allora reimposto a true.
+			//	Di nuovo su una riga sola per semplificarmi la vita, come al solito.
+			if((nuovax==vecchiax+2 && nuovay==vecchiay+2 && matrice[vecchiax+1][vecchiay+1].esiste==true) || (nuovax==vecchiax-2 && nuovay==vecchiay+2 && matrice[vecchiax-1][vecchiay+1].esiste==true) || (nuovax==vecchiax+2 && nuovay==vecchiay-2 && matrice[vecchiax+1][vecchiay-1].esiste==true) || (nuovax==vecchiax-2 && nuovay==vecchiay-2 && matrice[vecchiax-1][vecchiay-1].esiste==true)){
+				uppello=true;
+				ehcerto=true;
+				return ehcerto;
+			}
+			
+			//	Sto mangiando una pedina in orizzontale/verticale?
+			if((nuovax==vecchiax && nuovay==vecchiay+2 && matrice[vecchiax][vecchiay+1].esiste==true) || (nuovax==vecchiax && nuovay==vecchiay-2 && matrice[vecchiax][vecchiay-1].esiste==true) || (nuovax==vecchiax+2 && nuovay==vecchiay && matrice[vecchiax+1][vecchiay].esiste==true) || (nuovax==vecchiax-2 && nuovay==vecchiay && matrice[vecchiax-1][vecchiay].esiste==true)){
+				uppello=true;
+				ehcerto=true;
+				return ehcerto;
+			}
+			
+			uppello=false;
+			
+			//	Ritorno il valore(è 'false' di default)
+			return ehcerto;
+		}
+		
+		
+		//	INIZIALIZZAZIONE TELA
+		contesto.fillStyle="WHITE";
+		contesto.strokeStyle="BLACK";
+		contesto.lineWidth="1";
+		for(i=0;i<10;i++){
+			//	Linee verticali
+			contesto.moveTo(i*100,0);
+			contesto.lineTo(i*100,900);
+			
+			//	Linee orizzontali
+			contesto.moveTo(0,i*100);
+			contesto.lineTo(900,i*100);
+		}
+		contesto.stroke();
+		
+		//	L'array bidimensionale che userò per salvare lo stato delle pedine
+		matrice = [[],[],[],[],[],[],[],[],[]];
+		//	Inizializzo la suddetta matrice.
+		for(i=0;i<9;i++){
+			for(j=0;j<9;j++){
+				matrice[i][j] = new nuovaPedina(false,false);
+			}
+		}
+		
+		//	Le pedine in fondo: sia visualizzazione grafica che assegnamento logico
+		for(i=0;i<=2;i++){
+			//	Inizializzazione grafica
+			faiPedina(i,6,false);
+			faiPedina(i,7,false);
+			faiPedina(i,8,false);
+			
+			//	Inizializzazione logica
+			matrice[i][6].esiste=true;
+			matrice[i][7].esiste=true;
+			matrice[i][8].esiste=true;
+		}
+		//	FINE INIZIALIZZAZIONE
+		
+		
+		
+		//	Funzione per rilevare i "click" sulla tela
+		elementoCanvas.addEventListener("click",mioclick)
+		
+		//	Varabile per sapere quale caso ho:
+		//	0 == non ho una pedina selezionata
+		//	1 == ne ho una selezionata
+		//	2 == sto effettuando uno scavalco multiplo
+		var caso=0;
+		
+		//	Disegna o cancella le pedine sulla tela in base alle coordinate del click
+		function mioclick(evento){
+			//	Trasformo le coordinate da pixel a indice, comprendendo anche lo "scroll" verticale e laterale
+			coordx=Math.round(((evento.x+document.body.scrollLeft)-50)/100);
+			coordy=Math.round(((evento.y+document.body.scrollTop)-50)/100);
+			
+			//	Caso 0: selezione.
+			if(matrice[coordx][coordy].esiste==true && matrice[coordx][coordy].selezionata==false && caso==0){
+				matrice[coordx][coordy].selezionata=true;
+				faiPedina(coordx,coordy,true);
+				caso=1;	//	Ne ho una selezionata.
+				
+				//	Copio le coordinate vecchie.
+				vecchiacoordx=coordx;
+				vecchiacoordy=coordy;
+				
+				return 0;	//	Esco dalla funzione.
+			}
+			
+			//	Caso 1: spostamento semplice.
+			if(caso==1){
+				if(sipuofare(vecchiacoordx,vecchiacoordy,coordx,coordy)==true){
+					
+					//	Lo scavalco multiplo.
+					if(uppello==true){
+						//	Elimino la pedina vecchia.
+						eliminaPedina(vecchiacoordx,vecchiacoordy);
+					
+						//	Faccio quella nuova.
+						faiPedina(coordx,coordy,true);
+						matrice[coordx][coordy].esiste=true;
+						
+						//	Copio le coordinate vecchie.
+						vecchiacoordx=coordx;
+						vecchiacoordy=coordy;
+						
+						//	La prossima volta vai allo scavalco multiplo.
+						caso=2;
+						nmosse++;
+						punteggio.innerHTML="Numero mosse: "+nmosse;
+						return 0;
+					}
+					
+					//	Elimino la pedina vecchia.
+					eliminaPedina(vecchiacoordx,vecchiacoordy);
+					
+					//	Faccio quella nuova.
+					faiPedina(coordx,coordy,false);
+					matrice[coordx][coordy].esiste=true;
+					
+					//	Aumento il numero delle mosse.
+					nmosse++;
+				}
+				// Se non si può spostare la pedina, la deseleziono.
+				else {
+					faiPedina(vecchiacoordx,vecchiacoordy,false);
+					matrice[vecchiacoordx][vecchiacoordy].selezionata=false;
+				}
+				
+				//	Non ne ho più una selezionata.
+				caso=0;
+			}
+			
+			//	Caso 2: scavalco multiplo.
+			if(caso==2){
+				if(sipuofare(vecchiacoordx,vecchiacoordy,coordx,coordy)==true){
+					if(uppello==true){
+						//	Elimino la pedina vecchia.
+						eliminaPedina(vecchiacoordx,vecchiacoordy);
+						
+						//	Faccio quella nuova.
+						faiPedina(coordx,coordy,true);
+						matrice[coordx][coordy].esiste=true;
+					}
+					//	Qui è se faccio una mossa normale dopo uno scavalco.
+					else {
+						//	Elimino la pedina vecchia.
+						eliminaPedina(vecchiacoordx,vecchiacoordy);
+						
+						//	Faccio quella nuova, stavolta deselezionata.
+						faiPedina(coordx,coordy,false);
+						matrice[coordx][coordy].esiste=true;
+						
+						//	E visualizzo: poi ritorno al caso "0", cioè nessuna pedina selezionata.
+						nmosse++;
+						punteggio.innerHTML="Numero mosse: "+nmosse;
+						caso=0;
+						return 0;
+					}
+				}
+				
+				else {
+					faiPedina(vecchiacoordx,vecchiacoordy,false);
+					matrice[vecchiacoordx][vecchiacoordy].selezionata=false;
+				}
+				
+				//	Se non effettuo un'altro scavalco reimposto il "caso" a 0: nessuna pedina selezionata.
+				if(uppello==false){
+					caso=0;
+				}
+				
+				//	Copio le coordinate vecchie.
+				vecchiacoordx=coordx;
+				vecchiacoordy=coordy;
+			}
+			punteggio.innerHTML="Numero mosse: "+nmosse;
+		}
+	</script>
+</body>
+</html>
